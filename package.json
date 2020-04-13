@@ -1,0 +1,19 @@
+{
+  "name": "ig",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/belotserkovtsev/insta-bot.git"
+  },
+  "author": "belotserkovtsev",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/belotserkovtsev/insta-bot/issues"
+  },
+  "homepage": "https://github.com/belotserkovtsev/insta-bot#readme"
+}
