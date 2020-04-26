@@ -3,6 +3,7 @@ const Stage = require('telegraf/stage')
 const session = require('telegraf/session')
 const BaseScene = require('telegraf/scenes/base')
 const SocksAgent = require('socks5-https-client/lib/Agent');
+const fs = require('fs');
 
 //proxy is needed to work with bot from Russia
 //free-socks: http://spys.one/en/socks-proxy-list/
@@ -34,15 +35,26 @@ bot.start(ctx => {
 const nickname = new BaseScene('nickname');
 
 nickname.enter(ctx => {
-    ctx.reply('Введи свой ник в инстаграм. Например @belotserkovtsev');
+    ctx.reply('Введи свой ник в инстаграм. Например @belotserkovtsev', 
+    Telegraf.Markup.keyboard([['💔Отменить']]).oneTime().resize().extra());
+});
+nickname.hears('💔Отменить', ctx => {
+    ctx.scene.leave();
 });
 nickname.on('message', ctx => {
     if(ctx.message.text == '✅Да'){
+        let userData = {
+            igNickname : userAccount,
+            username : ctx.message.from.username
+        }
+        let data = JSON.stringify(userData, null, 2);
+        fs.writeFileSync('./userdata/' + ctx.message.from.username + '.json', data);
         ctx.scene.leave();
     }
     else if(ctx.message.text == '❎Нет'){
         userAccount = '';
-        ctx.reply('Давай еще разок');
+        ctx.reply('Давай еще разок',
+        Telegraf.Markup.keyboard([['💔Отменить']]).oneTime().resize().extra());
     }
     else if(ctx.message.text.indexOf('@') == 0){
         userAccount = ctx.message.text.slice(1);
@@ -50,7 +62,8 @@ nickname.on('message', ctx => {
         .keyboard([['✅Да', '❎Нет']]).oneTime().resize().extra());
     }
     else{
-        ctx.reply('Неверный формат. Попробуй еще раз')
+        ctx.reply('Неверный формат. Попробуй еще раз',
+        Telegraf.Markup.keyboard([['💔Отменить']]).oneTime().resize().extra());
     }
 })
 nickname.leave(ctx => {
