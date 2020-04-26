@@ -15,5 +15,9 @@
   "bugs": {
     "url": "https://github.com/belotserkovtsev/insta-bot/issues"
   },
-  "homepage": "https://github.com/belotserkovtsev/insta-bot#readme"
+  "homepage": "https://github.com/belotserkovtsev/insta-bot#readme",
+  "dependencies": {
+    "socks5-https-client": "^1.2.1",
+    "telegraf": "^3.37.0"
+  }
 }
