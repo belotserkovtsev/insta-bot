@@ -20,7 +20,6 @@
     "node-libcurl": "^2.1.0",
     "socks5-https-client": "^1.2.1",
     "telegraf": "^3.37.0",
-    "tweetnacl": "^1.0.3",
     "tweetnacl-sealedbox-js": "^1.2.0"
   }
 }
