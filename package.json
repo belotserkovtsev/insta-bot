@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/belotserkovtsev/insta-bot#readme",
   "dependencies": {
+    "cheerio": "^1.0.0-rc.3",
     "node-libcurl": "^2.1.0",
     "socks5-https-client": "^1.2.1",
     "telegraf": "^3.37.0",

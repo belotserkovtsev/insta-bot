@@ -1,6 +1,7 @@
 const { Curl } = require('node-libcurl');
 const crypto = require('crypto');
 const fs = require('fs');
+const cheerio = require('cheerio')
 //const nacl = require('tweetnacl');
 const sealedbox = require('tweetnacl-sealedbox-js');
 
@@ -36,7 +37,6 @@ function getrequest(url = ''){
         getCurl.setOpt('FOLLOWLOCATION', true);
         getCurl.setOpt('COOKIEFILE', './cookie/test');
         getCurl.setOpt('COOKIEJAR', './cookie/test');
-        //curl.setOpt('HEADER', true);
         getCurl.setOpt('SSL_VERIFYHOST', false);
         getCurl.setOpt('SSL_VERIFYPEER', false);
         //curl.setOpt('RETURNTRANSFER', true);
@@ -121,4 +121,50 @@ async function login(login, pass){
     postRequest('/accounts/login/ajax/', token, login, pass, enc_pass, '');
 }
 
-login('login', 'pass');
+async function getFollowers(){
+    let end_cursor;
+    let hasNextPage;
+    let followers = Array();
+    await getrequest('/graphql/query/?query_hash=' + encodeURIComponent('c76146de99bb02f6415203be841dd25a') + '&variables=' + encodeURIComponent('{"id":"","include_reel":true,"fetch_mutual":true,"first":50}'))
+    .then(res => {
+        //fs.writeFileSync('./userdata/js', res['data']);
+        let jsonData = JSON.parse(res['data']);
+        hasNextPage = jsonData.data.user.edge_followed_by.page_info.has_next_page;
+        end_cursor = jsonData.data.user.edge_followed_by.page_info.end_cursor;
+
+        jsonData.data.user.edge_followed_by.edges.forEach(i => {
+            followers.push(i.node.username);
+            console.log(i.node.username);
+        });
+        
+    })
+    
+    .catch(err => {
+        console.log(err)
+    })
+
+    while(hasNextPage){
+        await getrequest('/graphql/query/?query_hash=' + encodeURIComponent('c76146de99bb02f6415203be841dd25a') + '&variables=' + encodeURIComponent('{"id":"","include_reel":true,"fetch_mutual":true,"first":50,"after":"' + end_cursor + '"}'))
+        .then(res => {
+            
+            jsonData = JSON.parse(res['data']);
+            hasNextPage = jsonData.data.user.edge_followed_by.page_info.has_next_page;
+            console.log(hasNextPage);
+            jsonData.data.user.edge_followed_by.edges.forEach(i => {
+                followers.push(i.node.username);
+                console.log(i.node.username);
+            })
+            if(hasNextPage)
+                end_cursor = jsonData.data.user.edge_followed_by.page_info.end_cursor;
+        })
+
+        .catch(err => {
+            console.log(err);
+        })
+    }
+
+    return followers;
+    
+}
+
+getFollowers();
