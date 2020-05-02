@@ -133,8 +133,8 @@ async function getFollowers(){
         end_cursor = jsonData.data.user.edge_followed_by.page_info.end_cursor;
 
         jsonData.data.user.edge_followed_by.edges.forEach(i => {
-            followers.push(i.node.username);
-            console.log(i.node.username);
+            followers.push({'id': i.node.id, 'username': i.node.username});
+            // console.log(i.node.username);
         });
         
     })
@@ -151,8 +151,8 @@ async function getFollowers(){
             hasNextPage = jsonData.data.user.edge_followed_by.page_info.has_next_page;
             console.log(hasNextPage);
             jsonData.data.user.edge_followed_by.edges.forEach(i => {
-                followers.push(i.node.username);
-                console.log(i.node.username);
+                followers.push({'id': i.node.id, 'username': i.node.username});
+                // console.log(i.node.username);
             })
             if(hasNextPage)
                 end_cursor = jsonData.data.user.edge_followed_by.page_info.end_cursor;
@@ -163,8 +163,49 @@ async function getFollowers(){
         })
     }
 
-    return followers;
+
+    let data = fs.readFileSync('');
+    let newFollowersArray = new Array();
+    let lostFollowersArray = new Array();
+    data = JSON.parse(data);
+    followers.forEach(i => {
+        let isOldUser = false;
+        data.followers.forEach(j => {
+            if(i.id == j.id){
+                isOldUser = true;
+                return;
+            }
+        })
+        if(!isOldUser)
+            newFollowersArray.push(i.username);
+    });
+
+    data.followers.forEach(i => {
+        let isOldUser = false;
+        followers.forEach(j => {
+            if(i.id == j.id){
+                isOldUser = true;
+                return;
+            }
+        })
+        if(!isOldUser)
+            lostFollowersArray.push(i.username)
+    });
+
+    data.followers = followers
+    data = JSON.stringify(data, null, 2);
+    fs.writeFileSync('', data);
+
+    return [followers, newFollowersArray, lostFollowersArray];
     
 }
 
-getFollowers();
+getFollowers().then(res => {
+    console.log(res[0]);
+    console.log(res[1]);
+    console.log(res[2]);
+})
+.catch(err => {
+    console.log(err)
+});
+
