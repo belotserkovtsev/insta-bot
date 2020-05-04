@@ -6,8 +6,9 @@ const sealedbox = require('tweetnacl-sealedbox-js');
 
 module.exports = class Parser{
 
-    constructor(username){
+    constructor(username, tgUsername){
         this.username = username;
+        this.tgUsername = tgUsername;
     }
 
     encrypt({password, publicKey, publicKeyId}) {
@@ -133,7 +134,7 @@ module.exports = class Parser{
         let end_cursor;
         let hasNextPage;
         let followers = Array();
-        let dontFollowBack = Array();
+        let idontFollowBack = Array();
         await this.getrequest('/graphql/query/?query_hash=' + encodeURIComponent('c76146de99bb02f6415203be841dd25a') + '&variables=' + encodeURIComponent('{"id":"' + id + '","include_reel":true,"fetch_mutual":true,"first":50}'))
         .then(res => {
             //fs.writeFileSync('./userdata/js', res['data']);
@@ -144,7 +145,7 @@ module.exports = class Parser{
             jsonData.data.user.edge_followed_by.edges.forEach(i => {
                 followers.push({'id': i.node.id, 'username': i.node.username});
                 if(!i.node.followed_by_viewer)
-                    dontFollowBack.push({'id': i.node.id, 'username': i.node.username});
+                    idontFollowBack.push({'id': i.node.id, 'username': i.node.username});
                 // console.log(i.node.username);
             });
             
@@ -164,7 +165,7 @@ module.exports = class Parser{
                 jsonData.data.user.edge_followed_by.edges.forEach(i => {
                     followers.push({'id': i.node.id, 'username': i.node.username});
                     if(!i.node.followed_by_viewer)
-                        dontFollowBack.push({'id': i.node.id, 'username': i.node.username});
+                        idontFollowBack.push({'id': i.node.id, 'username': i.node.username});
                     // console.log(i.node.username);
                 })
                 if(hasNextPage)
@@ -177,9 +178,9 @@ module.exports = class Parser{
         }
 
 
-        let data = fs.readFileSync('./userdata/' + this.username + '.json');
-        let newFollowersArray = new Array();
-        let lostFollowersArray = new Array();
+        let data = fs.readFileSync('./userdata/' + this.tgUsername + '.json');
+        let newFollowers = new Array();
+        let lostFollowers = new Array();
         data = JSON.parse(data);
         followers.forEach(i => {
             let isOldUser = false;
@@ -190,7 +191,7 @@ module.exports = class Parser{
                 }
             })
             if(!isOldUser)
-                newFollowersArray.push(i.username);
+                newFollowers.push(i.username);
         });
 
         data.followers.forEach(i => {
@@ -202,14 +203,15 @@ module.exports = class Parser{
                 }
             })
             if(!isOldUser)
-                lostFollowersArray.push(i.username)
+                lostFollowers.push(i.username)
         });
 
         data.followers = followers
+        data.idontFollowBack = idontFollowBack;
         data = JSON.stringify(data, null, 2);
-        fs.writeFileSync('./userdata/' + this.username + '.json', data);
+        fs.writeFileSync('./userdata/' + this.tgUsername + '.json', data);
 
-        return [followers, dontFollowBack, newFollowersArray, lostFollowersArray];
+        return {'followers': followers, 'idontFollowBack': idontFollowBack, 'newFollowers': newFollowers, 'lostFollowers': lostFollowers};
         
     }
 }
