@@ -22,6 +22,7 @@ const nickname = new BaseScene('nickname');
 const password = new BaseScene('password');
 const menu = new BaseScene('menu');
 const menuLoggedIn = new BaseScene('menuLoggedIn');
+const lk = new BaseScene('lk');
 
 
 password.enter(ctx => {
@@ -46,6 +47,7 @@ password.on('message', ctx => {
                     igNickname : ctx.session.userAccount,
                     igId : jsData['userId'],
                     username : ctx.message.from.username,
+                    timeupdate: Date.now(),
                     loggedIn: true,
                     isFirstParse: true,
                     followers:[],
@@ -144,11 +146,98 @@ menuLoggedIn.enter(ctx => {
     ctx.reply('📱Главное меню. Вошел',Telegraf.Markup.keyboard([['📟Личный кабинет', '🧬Анализировать'], ['🔍Сменить аккаунт', '📄О боте'] ,['💣Сообщить о баге', '📵Забыть меня']]).oneTime().resize().extra());
 })
 
-menuLoggedIn.hears('📟Личный кабинет', ctx => {
-    ctx.reply('В разработке')
-});
+menuLoggedIn.hears('📟Личный кабинет', Stage.enter('lk'));
 
 menuLoggedIn.hears('🧬Анализировать', async (ctx) => {
+    await ctx.reply('В процессе...');
+    let jsonData;
+    if(ctx.session.isLoggedIn){
+        jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.message.from.username + '.json'));
+        let followers, following, idontFollowBack, dontFollowMeBack, newFollowersCount;
+        followers = jsonData.followers;
+        following = jsonData.following;
+        idontFollowBack = jsonData.idontFollowBack;
+        dontFollowMeBack = jsonData.dontFollowMeBack;
+
+        await ctx.session.parser.getFollowers(jsonData.igId).then(async (res) => {
+            newFollowersCount = res['newFollowers'].length - res['lostFollowers'].length;
+
+            if(newFollowersCount > 0)
+                await ctx.reply('Подписчики => ' + res['followers'].length + '(+' + newFollowersCount + ')');
+            else if(newFollowersCount < 0)
+                await ctx.reply('Подписчики => ' + res['followers'].length + '(' + newFollowersCount + ')');
+            else
+                await ctx.reply('Подписчики => ' + res['followers'].length);
+            await ctx.reply('Я не подписан в ответ => ' + res['idontFollowBack'].length);
+
+            
+        })
+        .catch(err => console.log(err));
+
+        await ctx.session.parser.getFollowing(jsonData.igId).then(async (res) => {
+            console.log(res)
+            let dfmbCount = jsonData.dontFollowMeBack.length - res['dontFollowMeBack'].length
+            await ctx.reply('Подписки => ' + res['following'].length)
+
+            if(dfmbCount > 0)
+                await ctx.reply('На меня не подписаны в ответ => ' + res['dontFollowMeBack'].length + ' (-' +  Math.abs(dfmbCount) + ')');
+            else if(dfmbCount < 0)
+                await ctx.reply('На меня не подписаны в ответ => ' + res['dontFollowMeBack'].length + ' (+' + Math.abs(dfmbCount) + ')');
+            else   
+                await ctx.reply('На меня не подписаны в ответ => ' + res['dontFollowMeBack'].length);
+            
+            if(!jsonData.isFirstParse)
+                await ctx.reply('Чтобы получить более детальную статистику перейди \nв "📟Личный кабинет"');
+            else{
+                jsonData.isFirstParse = false;
+                await ctx.reply('Первый анализ успешно завершен. При следующем анализе ниже будет представлена краткая статистическая сводка, но намного больше информации можно получить, если перейти \nв "📟Личный кабинет"');
+                fs.writeFileSync('./userdata/' + ctx.message.from.username + '.json', JSON.stringify(jsonData, null, 2));
+            }
+        })
+        .catch(err => console.log(err));
+    }
+    // ctx.reply('В разработке');
+});
+
+menuLoggedIn.hears('💣Сообщить о баге', ctx => {
+    ctx.reply('Напиши мне что случилось: \n@belotserkovtsev')
+});
+
+menuLoggedIn.on('message', ctx => {
+    ctx.reply('Неизвестная команда. Воспользуйся меню')
+});
+
+lk.enter(ctx => {
+    jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.message.from.username + '.json'));
+    ctx.reply(`📱Инстаграм: ${ctx.session.userAccount}\n👩🏻‍💻Подписчиков: ${jsonData.followers.length}\n👨🏻‍💻Подписок: ${jsonData.following.length}`
+    ,Telegraf.Markup.keyboard([['Новые подписчики', 'Потерянные подписчики'], ['Я не подписан в ответ', 'На меня не подписаны в ответ'] ,['Главное меню']]).oneTime().resize().extra());
+});
+
+lk.hears('Главное меню', ctx => {
+    ctx.scene.enter('menuLoggedIn');
+});
+
+/* Registering scenes */
+const stage = new Stage();
+stage.register(nickname);
+stage.register(password);
+stage.register(menu);
+stage.register(menuLoggedIn);
+stage.register(lk);
+
+/* Making staging work, initializing session for personalized statistics */
+bot.use(session())
+bot.use(stage.middleware())
+
+/* On /start event handler */
+bot.start(ctx => {
+    if(ctx.session.isLoggedIn || (fs.existsSync('./userdata/' + ctx.message.from.username + '.json') && JSON.parse(fs.readFileSync('./userdata/' + ctx.message.from.username + '.json')).loggedIn))
+        ctx.scene.enter('menuLoggedIn');
+    else
+        ctx.scene.enter('menu');
+});
+
+bot.on('message', async (ctx) => {
     let jsonData;
     let existsFile = false;
     if(fs.existsSync('./userdata/' + ctx.message.from.username + '.json')){
@@ -162,66 +251,12 @@ menuLoggedIn.hears('🧬Анализировать', async (ctx) => {
     if(!ctx.session.parser){
         ctx.session.parser = new Parser(ctx.session.userAccount, ctx.message.from.username);
     }
-    if(ctx.session.isLoggedIn){
-        let followers, following, idontFollowBack, dontFollowMeBack;
-        followers = jsonData.followers;
-        following = jsonData.following;
-        idontFollowBack = jsonData.idontFollowBack;
-        dontFollowMeBack = jsonData.dontFollowMeBack;
-
-        await ctx.session.parser.getFollowers(jsonData.igId).then(async (res) => {
-            console.log(res);
-            if(jsonData.isFirstParse)
-                await ctx.reply('Анализ успешно завершен. Ниже представлена краткая статистическая сводка, но намного больше информации можно получить, если перейти в \n"📟Личный кабинет"')
-            let newFollowersCount = res['newFollowers'].length - res['lostFollowers'].length;
-            if(newFollowersCount > 0)
-                await ctx.reply('+' + res['newFollowers'].length + ' подписчиков\n');
-            else if(newFollowersCount < 0)
-                await ctx.reply('-' + res['lostFollowers'].length + ' подписчиков');
-            else
-                await ctx.reply('Количество подписчиков не изменилось');
-            if(!jsonData.isFirstParse)
-                await ctx.reply('Чтобы получить более детальную статистику перейди в "📟Личный кабинет"')
-            else{
-                jsonData.isFirstParse = false;
-                // let data = JSON.stringify(jsonData, null, 2);
-                fs.writeFileSync('./userdata/' + ctx.message.from.username + '.json', JSON.stringify(jsonData, null, 2));
-            }
-        });
-
-
-    }
-    // ctx.reply('В разработке');
-});
-
-menuLoggedIn.hears('💣Сообщить о баге', ctx => {
-    ctx.reply('Напиши мне что случилось: \n@belotserkovtsev')
-});
-
-menuLoggedIn.on('message', ctx => {
-    ctx.reply('Неизвестная команда. Воспользуйся меню')
-});
-
-/* Registering scenes */
-const stage = new Stage();
-stage.register(nickname);
-stage.register(password);
-stage.register(menu);
-stage.register(menuLoggedIn);
-
-/* Making staging work, initializing session for personalized statistics */
-bot.use(session())
-bot.use(stage.middleware())
-
-/* On /start event handler */
-bot.start(ctx => {
-    // ctx.reply('Привет, я бот-трекер статистики для инстаграм. Я умею:\nСчитать подписчиков\nНаходить тех, кто не подписан на вас', 
-    // Telegraf.Markup.keyboard([['🔍Ввести свой ник', '🧬Анализировать'], ['💣Сообщить о баге']]).oneTime().resize().extra());
-    if(ctx.session.isLoggedIn || (fs.existsSync('./userdata/' + ctx.message.from.username + '.json') && JSON.parse(fs.readFileSync('./userdata/' + ctx.message.from.username + '.json')).loggedIn))
+    await ctx.reply('Бот был перезагружен. Твоя сессия восстановлена');
+    if(ctx.session.isLoggedIn)
         ctx.scene.enter('menuLoggedIn');
     else
         ctx.scene.enter('menu');
-});
+})
 
 
 
