@@ -133,12 +133,13 @@ module.exports = class Parser{
     async getFollowers(id){
         let end_cursor;
         let hasNextPage;
+        let jsonData;
         let followers = Array();
         let idontFollowBack = Array();
         await this.getrequest('/graphql/query/?query_hash=' + encodeURIComponent('c76146de99bb02f6415203be841dd25a') + '&variables=' + encodeURIComponent('{"id":"' + id + '","include_reel":true,"fetch_mutual":true,"first":50}'))
         .then(res => {
             //fs.writeFileSync('./userdata/js', res['data']);
-            let jsonData = JSON.parse(res['data']);
+            jsonData = JSON.parse(res['data']);
             hasNextPage = jsonData.data.user.edge_followed_by.page_info.has_next_page;
             end_cursor = jsonData.data.user.edge_followed_by.page_info.end_cursor;
 
@@ -161,7 +162,7 @@ module.exports = class Parser{
                 
                 jsonData = JSON.parse(res['data']);
                 hasNextPage = jsonData.data.user.edge_followed_by.page_info.has_next_page;
-                console.log(hasNextPage);
+                // console.log(hasNextPage);
                 jsonData.data.user.edge_followed_by.edges.forEach(i => {
                     followers.push({'id': i.node.id, 'username': i.node.username});
                     if(!i.node.followed_by_viewer)
@@ -214,14 +215,68 @@ module.exports = class Parser{
         return {'followers': followers, 'idontFollowBack': idontFollowBack, 'newFollowers': newFollowers, 'lostFollowers': lostFollowers};
         
     }
+
+    async getFollowing(id){
+        let end_cursor;
+        let hasNextPage;
+        let jsonData;
+        let following = Array();
+        let dontFollowMeBack = Array();
+        await this.getrequest('/graphql/query/?query_hash=' + encodeURIComponent('d04b0a864b4b54837c0d870b0e77e076') + '&variables=' + encodeURIComponent('{"id":"' + id + '","include_reel":true,"fetch_mutual":true,"first":50}'))
+        .then(res => {
+            jsonData = JSON.parse(res['data']);
+            hasNextPage = jsonData.data.user.edge_follow.page_info.has_next_page;
+            end_cursor = jsonData.data.user.edge_follow.page_info.end_cursor;
+
+            jsonData.data.user.edge_follow.edges.forEach(i => {
+                // console.log(i.node.username);
+                following.push({'id': i.node.id, 'username': i.node.username});
+            });
+            
+        })
+        
+        .catch(err => {
+            console.log(err)
+        })
+
+        while(hasNextPage){
+            await this.getrequest('/graphql/query/?query_hash=' + encodeURIComponent('d04b0a864b4b54837c0d870b0e77e076') + '&variables=' + encodeURIComponent('{"id":"' + id + '","include_reel":true,"fetch_mutual":true,"first":50,"after":"' + end_cursor + '"}'))
+            .then(res => {
+                jsonData = JSON.parse(res['data']);
+                hasNextPage = jsonData.data.user.edge_follow.page_info.has_next_page;
+                jsonData.data.user.edge_follow.edges.forEach(i => {
+                    // console.log(i.node.username);
+                    following.push({'id': i.node.id, 'username': i.node.username});
+                })
+                if(hasNextPage)
+                    end_cursor = jsonData.data.user.edge_follow.page_info.end_cursor;
+            })
+
+            .catch(err => {
+                console.log(err);
+            })
+        }
+
+
+        // let data = fs.readFileSync('./userdata/' + this.tgUsername + '.json');
+        jsonData = JSON.parse(fs.readFileSync('./userdata/' + this.tgUsername + '.json'));
+        jsonData.following = following;
+        following.forEach(i => {
+            let followsBack = false;
+            jsonData.followers.forEach(j => {
+                if(i['id'] == j['id']){
+                    followsBack = true;
+                    return;
+                }
+            });
+            if(!followsBack){
+                dontFollowMeBack.push(i);
+            }
+        });
+        jsonData.dontFollowMeBack = dontFollowMeBack;
+        fs.writeFileSync('./userdata/' + this.tgUsername + '.json', JSON.stringify(jsonData, null, 2));
+
+        return {'following': following, 'dontFollowMeBack': dontFollowMeBack}
+    }
 }
-// getFollowers().then(res => {
-//     console.log(res[0]);
-//     console.log(res[1]);
-//     console.log(res[2]);
-//     console.log(res[3])
-// })
-// .catch(err => {
-//     console.log(err)
-// });
 
