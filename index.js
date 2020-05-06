@@ -23,7 +23,64 @@ const password = new BaseScene('password');
 const menu = new BaseScene('menu');
 const menuLoggedIn = new BaseScene('menuLoggedIn');
 const lk = new BaseScene('lk');
+const tfa = new BaseScene('tfa');
 
+tfa.enter(ctx => {
+    let keyboard = ['Резервные коды']
+    if(ctx.session.sms)
+        keyboard.push('SMS');
+    
+    ctx.reply('У тебя настроена двухфакторная аутентификация. Введи 6-значный код, сгенерированный твоим приложением для аутентификации или выбери другой способ',
+    Telegraf.Markup.keyboard([keyboard]).oneTime().resize().extra());
+})
+
+tfa.hears('SMS', ctx => {
+    ctx.session.parser.tfa('SMS', ctx.session.identifier).then(res => {
+        if(res){
+            let jsonData = JSON.parse(res['data']);
+            ctx.reply(`На твой телефон, оканчивающийся на ${jsonData['two_factor_info']['obfuscated_phone_number']}, было отправлено смс с кодом. Напиши его сюда`);
+            ctx.session.identifier = jsonData['two_factor_info']['two_factor_identifier'];
+        }
+        else{
+            ctx.reply('Ошибка с отправкой кода. Попробуй еще раз');
+        }
+    });
+});
+
+// tfa.hears('Резервные коды', ctx => {
+
+// });
+
+tfa.on('message', ctx => {
+    ctx.session.parser.tfa('auth', ctx.session.identifier, ctx.message.text).then(res => {
+        if(res){
+            let jsData = JSON.parse(res['data']);
+            console.log(jsData);
+            
+            let userData = {
+                igNickname : ctx.session.userAccount,
+                igId : jsData['userId'],
+                username : ctx.message.from.username,
+                timeupdate: Date.now(),
+                loggedIn: true,
+                isFirstParse: true,
+                followers:[],
+                following: [],
+                idontFollowBack: [],
+                dontFollowMeBack: []
+            }
+            let data = JSON.stringify(userData, null, 2);
+            fs.writeFileSync('./userdata/' + ctx.message.from.username + '.json', data);
+            ctx.session.isLoggedIn = true;
+            // ctx.session.telegramAccount = 
+            // ctx.session.userPassword = '';
+            ctx.scene.enter('menuLoggedIn');
+        }
+            
+        else
+            ctx.reply('Не успешно')
+    })
+})
 
 password.enter(ctx => {
     ctx.reply('Введи пароль!',
@@ -40,9 +97,15 @@ password.hears('💔Отменить', ctx => {
 password.on('message', ctx => {
     if(ctx.message.text == '✅Да'){
         ctx.session.parser = new Parser(ctx.session.userAccount, ctx.message.from.username);
-        ctx.session.parser.login(ctx.session.userAccount, ctx.session.userPassword).then(res => {
+        ctx.session.parser.login(ctx.session.userAccount, ctx.session.userPassword).then(async (res) => {
             let jsData = JSON.parse(res['data'])
-            if(jsData['authenticated']){
+            if(jsData['two_factor_required']){
+                ctx.session.identifier = jsData['two_factor_info']['two_factor_identifier'];
+                ctx.session.sms = jsData['two_factor_info']['sms_two_factor_on'];
+                ctx.scene.enter('tfa');
+                // ctx.session.totp = jsData['two_factor_info']['totp_two_factor_on']
+            }
+            else if(jsData['authenticated']){
                 let userData = {
                     igNickname : ctx.session.userAccount,
                     igId : jsData['userId'],
@@ -87,8 +150,6 @@ password.on('message', ctx => {
         .keyboard([['✅Да', '❎Нет']]).oneTime().resize().extra());
     }
 })
-
-password.leave(ctx => {})
 
 nickname.enter(ctx => {
     ctx.reply('Введи свой ник в инстаграм. Например @belotserkovtsev', 
@@ -224,6 +285,7 @@ stage.register(password);
 stage.register(menu);
 stage.register(menuLoggedIn);
 stage.register(lk);
+stage.register(tfa);
 
 /* Making staging work, initializing session for personalized statistics */
 bot.use(session())
@@ -261,3 +323,6 @@ bot.on('message', async (ctx) => {
 
 
 bot.launch();
+// let test = new Parser('JuliaMills8971282', 'belotserkovtsev');
+// test.getFollowing('33765647560');
+// test.getFollowers('33765647560')

@@ -60,7 +60,7 @@ module.exports = class Parser{
         
     }
 
-    postRequest(url, csrftoken, login, password, enc_pass, headers){
+    postRequest(url, csrftoken, postFields){
         return new Promise((resolve, reject) =>{
             const postCurl = new Curl();
     
@@ -74,7 +74,7 @@ module.exports = class Parser{
             postCurl.setOpt('USERAGENT', `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36`);
             postCurl.setOpt('POST', true);
             
-            postCurl.setOpt('POSTFIELDS', 'username=' + login + '&enc_password='+ encodeURIComponent(enc_pass) + '&password=' + encodeURIComponent(password) + '&queryParams=' + encodeURIComponent('{}') + '&optIntoOneTap=false&password=' + encodeURIComponent(password))
+            postCurl.setOpt('POSTFIELDS', postFields)
             postCurl.setOpt('HTTPHEADER', [
                 'Content-Type: application/x-www-form-urlencoded',
                 'X-CSRFToken: ' + csrftoken,
@@ -105,6 +105,7 @@ module.exports = class Parser{
     async login(login, pass){
         let token;
         let enc_pass;
+        let postFields;
         let pubKey;
         let pubKeyId;
         await this.getrequest('/accounts/login').then((arr) => {
@@ -125,9 +126,43 @@ module.exports = class Parser{
         console.log(token);
         
         let encPassData = this.encrypt({password: pass, publicKey: pubKey, publicKeyId: pubKeyId});
-        console.log(encPassData);
+        // console.log(encPassData);
         enc_pass = `#PWD_INSTAGRAM_BROWSER:6:${encPassData['time']}:${encPassData['encrypted']}`;
-        return await this.postRequest('/accounts/login/ajax/', token, login, pass, enc_pass, '');
+        postFields = 'username=' + login + '&enc_password='+ encodeURIComponent(enc_pass) + '&password=' + encodeURIComponent(pass) + '&queryParams=' + encodeURIComponent('{}') + '&optIntoOneTap=false&password=' + encodeURIComponent(pass);
+        this.token = token;
+        return await this.postRequest('/accounts/login/ajax/', token, postFields);
+    }
+
+    async tfa(method, id, code = ''){
+        if(method == 'SMS'){
+            let postFields = 'username=' + encodeURIComponent(this.username) + '&identifier=' + encodeURIComponent(id);
+            return await this.postRequest('/accounts/send_two_factor_login_sms/', this.token, postFields).then(res => {
+                // console.log(res['data']);
+                
+                if(JSON.parse(res['data'])['status'] == 'ok'){
+                    return res;
+                }
+                else{
+                    return false;
+                }
+            })
+        }
+        else if(method == 'auth'){
+            let postFields = 'username=' + encodeURIComponent(this.username) + '&verificationCode=' + code + '&identifier=' + encodeURIComponent(id) + '&queryParams=' + encodeURIComponent('{"next":"/"}');
+            console.log(postFields);
+            
+            return await this.postRequest('/accounts/login/ajax/two_factor/', this.token, postFields).then(res => {
+                // console.log(res['data']);
+                
+                if(JSON.parse(res['data'])['authenticated']){
+                    return res;
+                }
+                else{
+                    return false;
+                }
+            })
+        }
+
     }
 
     async getFollowers(id){
@@ -139,6 +174,7 @@ module.exports = class Parser{
         await this.getrequest('/graphql/query/?query_hash=' + encodeURIComponent('c76146de99bb02f6415203be841dd25a') + '&variables=' + encodeURIComponent('{"id":"' + id + '","include_reel":true,"fetch_mutual":true,"first":50}'))
         .then(res => {
             //fs.writeFileSync('./userdata/js', res['data']);
+            // console.log(res['data']);
             jsonData = JSON.parse(res['data']);
             hasNextPage = jsonData.data.user.edge_followed_by.page_info.has_next_page;
             end_cursor = jsonData.data.user.edge_followed_by.page_info.end_cursor;
