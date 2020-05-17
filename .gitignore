@@ -3,3 +3,8 @@ build
 npm-debug.log
 .env
 .DS_Store
+userdata
+cookie
+*.code-workspace
+*.vscode
+botUsers.json
