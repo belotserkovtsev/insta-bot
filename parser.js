@@ -1,7 +1,6 @@
 const { Curl } = require('node-libcurl');
 const crypto = require('crypto');
 const fs = require('fs');
-const cheerio = require('cheerio')
 const sealedbox = require('tweetnacl-sealedbox-js');
 
 module.exports = class Parser{
