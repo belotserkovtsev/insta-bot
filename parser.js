@@ -11,7 +11,7 @@ module.exports = class Parser{
         this.tgUsername = tgUsername;
     }
 
-    encrypt({password, publicKey, publicKeyId}) {
+    encrypt({password, publicKey, publicKeyId}){
         const time = Date.now().toString();
         const key = crypto.pseudoRandomBytes(32);
         const iv = Buffer.alloc(12, 0);
@@ -41,8 +41,8 @@ module.exports = class Parser{
     
             getCurl.setOpt('URL', 'https://www.instagram.com' + url);
             getCurl.setOpt('FOLLOWLOCATION', true);
-            getCurl.setOpt('COOKIEFILE', './cookie/' + this.username);
-            getCurl.setOpt('COOKIEJAR', './cookie/' + this.username);
+            getCurl.setOpt('COOKIEFILE', './cookie/' + this.tgUsername);
+            getCurl.setOpt('COOKIEJAR', './cookie/' + this.tgUsername);
             getCurl.setOpt('SSL_VERIFYHOST', false);
             getCurl.setOpt('SSL_VERIFYPEER', false);
             //curl.setOpt('RETURNTRANSFER', true);
@@ -56,7 +56,7 @@ module.exports = class Parser{
             getCurl.on('error', getCurl.close.bind(getCurl));
 
             getCurl.perform();
-            })
+        })
         
     }
 
@@ -66,8 +66,8 @@ module.exports = class Parser{
     
             postCurl.setOpt('URL', 'https://www.instagram.com' + url);
             postCurl.setOpt('FOLLOWLOCATION', true);
-            postCurl.setOpt('COOKIEFILE', './cookie/' + this.username);
-            postCurl.setOpt('COOKIEJAR', './cookie/' + this.username);
+            postCurl.setOpt('COOKIEFILE', './cookie/' + this.tgUsername);
+            postCurl.setOpt('COOKIEJAR', './cookie/' + this.tgUsername);
             //curl.setOpt('HEADER', true);
             postCurl.setOpt('SSL_VERIFYHOST', false);
             postCurl.setOpt('SSL_VERIFYPEER', false);
@@ -108,6 +108,7 @@ module.exports = class Parser{
         let postFields;
         let pubKey;
         let pubKeyId;
+        let pubKeyV;
         await this.getrequest('/accounts/login').then((arr) => {
             arr['headers'][1]['Set-Cookie'].forEach(i => {
                 if(i.indexOf('csrftoken') != -1){
@@ -117,6 +118,7 @@ module.exports = class Parser{
 
             pubKey = arr['headers'][1]['ig-set-password-encryption-web-pub-key'];
             pubKeyId = arr['headers'][1]['ig-set-password-encryption-web-key-id'];
+            pubKeyV = arr['headers'][1]['ig-set-password-encryption-web-key-version'];
 
         }).catch(err => {
             console.log(err);
@@ -127,7 +129,7 @@ module.exports = class Parser{
         
         let encPassData = this.encrypt({password: pass, publicKey: pubKey, publicKeyId: pubKeyId});
         // console.log(encPassData);
-        enc_pass = `#PWD_INSTAGRAM_BROWSER:6:${encPassData['time']}:${encPassData['encrypted']}`;
+        enc_pass = `#PWD_INSTAGRAM_BROWSER:${pubKeyV}:${encPassData['time']}:${encPassData['encrypted']}`;
         postFields = 'username=' + login + '&enc_password='+ encodeURIComponent(enc_pass) + '&password=' + encodeURIComponent(pass) + '&queryParams=' + encodeURIComponent('{}') + '&optIntoOneTap=false&password=' + encodeURIComponent(pass);
         this.token = token;
         return await this.postRequest('/accounts/login/ajax/', token, postFields);
@@ -137,8 +139,6 @@ module.exports = class Parser{
         if(method == 'SMS'){
             let postFields = 'username=' + encodeURIComponent(this.username) + '&identifier=' + encodeURIComponent(id);
             return await this.postRequest('/accounts/send_two_factor_login_sms/', this.token, postFields).then(res => {
-                // console.log(res['data']);
-                
                 if(JSON.parse(res['data'])['status'] == 'ok'){
                     return res;
                 }
@@ -149,16 +149,15 @@ module.exports = class Parser{
         }
         else if(method == 'auth'){
             let postFields = 'username=' + encodeURIComponent(this.username) + '&verificationCode=' + code + '&identifier=' + encodeURIComponent(id) + '&queryParams=' + encodeURIComponent('{"next":"/"}');
-            console.log(postFields);
+            // console.log(postFields);
             
             return await this.postRequest('/accounts/login/ajax/two_factor/', this.token, postFields).then(res => {
-                // console.log(res['data']);
-                
-                if(JSON.parse(res['data'])['authenticated']){
-                    return res;
+                let response = JSON.parse(res['data']);
+                if(response['authenticated']){
+                    return response;
                 }
                 else{
-                    return false;
+                    return response;
                 }
             })
         }
@@ -228,7 +227,7 @@ module.exports = class Parser{
                 }
             })
             if(!isOldUser)
-                newFollowers.push(i.username);
+                newFollowers.push({'id': i.id, 'username': i.username});
         });
 
         data.followers.forEach(i => {
@@ -240,11 +239,14 @@ module.exports = class Parser{
                 }
             })
             if(!isOldUser)
-                lostFollowers.push(i.username)
+                lostFollowers.push({'id': i.id, 'username': i.username});
         });
 
         data.followers = followers
         data.idontFollowBack = idontFollowBack;
+
+        data.newFollowers = newFollowers;
+        data.lostFollowers = lostFollowers;
         data = JSON.stringify(data, null, 2);
         fs.writeFileSync('./userdata/' + this.tgUsername + '.json', data);
 
