@@ -47,9 +47,9 @@ Launch your application with <b>pm2</b> or <b>node</b>
 node index.js
 ```
 
-## Usage
+## 🔮 Usage
 
 ![](https://media.giphy.com/media/ju0nZzxTv4tHNgZInX/giphy.gif)
 
-## Contributing
+## 📱 Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
