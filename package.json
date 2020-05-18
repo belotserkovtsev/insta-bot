@@ -1,17 +1,17 @@
 {
   "name": "ig",
   "version": "1.0.0",
-  "description": "",
+  "description": "telegram bot for tracking instagram stats",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node index.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/belotserkovtsev/insta-bot.git"
   },
   "author": "belotserkovtsev",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/belotserkovtsev/insta-bot/issues"
   },
