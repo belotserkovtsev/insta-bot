@@ -85,12 +85,12 @@ module.exports = class Parser{
 
 
             postCurl.on('end', function (statusCode, data, headers) {
-                console.log(data);
-                console.info(statusCode);
-                console.info('---');
-                console.info(data.length);
-                console.info('---');
-                console.info(this.getInfo( 'TOTAL_TIME'));
+                // console.log(data);
+                // console.info(statusCode);
+                // console.info('---');
+                // console.info(data.length);
+                // console.info('---');
+                // console.info(this.getInfo( 'TOTAL_TIME'));
                 resolve({'statusCode': statusCode, 'data': data, 'headers': headers});
                 this.close();
             });
@@ -108,20 +108,16 @@ module.exports = class Parser{
         let pubKey;
         let pubKeyId;
         let pubKeyV;
-        await this.getrequest('/accounts/login').then((arr) => {
-            arr['headers'][1]['Set-Cookie'].forEach(i => {
-                if(i.indexOf('csrftoken') != -1){
-                    token = i.split(';')[0].split('=')[1];
-                }
-            });
+        let arr = await this.getrequest('/accounts/login')
+        arr['headers'][1]['Set-Cookie'].forEach(i => {
+            if(i.indexOf('csrftoken') != -1){
+                token = i.split(';')[0].split('=')[1];
+            }
+        });
 
-            pubKey = arr['headers'][1]['ig-set-password-encryption-web-pub-key'];
-            pubKeyId = arr['headers'][1]['ig-set-password-encryption-web-key-id'];
-            pubKeyV = arr['headers'][1]['ig-set-password-encryption-web-key-version'];
-
-        }).catch(err => {
-            console.log(err);
-        })
+        pubKey = arr['headers'][1]['ig-set-password-encryption-web-pub-key'];
+        pubKeyId = arr['headers'][1]['ig-set-password-encryption-web-key-id'];
+        pubKeyV = arr['headers'][1]['ig-set-password-encryption-web-key-version'];
         console.log(pubKey);
         console.log(pubKeyId);
         console.log(token);
@@ -169,47 +165,34 @@ module.exports = class Parser{
         let jsonData;
         let followers = Array();
         let idontFollowBack = Array();
-        await this.getrequest('/graphql/query/?query_hash=' + encodeURIComponent('c76146de99bb02f6415203be841dd25a') + '&variables=' + encodeURIComponent('{"id":"' + id + '","include_reel":true,"fetch_mutual":true,"first":50}'))
-        .then(res => {
-            //fs.writeFileSync('./userdata/js', res['data']);
-            // console.log(res['data']);
+        let res = await this.getrequest('/graphql/query/?query_hash=' + encodeURIComponent('c76146de99bb02f6415203be841dd25a') + '&variables=' + encodeURIComponent('{"id":"' + id + '","include_reel":true,"fetch_mutual":true,"first":50}'))
+        //fs.writeFileSync('./userdata/js', res['data']);
+        // console.log(res['data']);
+        jsonData = JSON.parse(res['data']);
+        hasNextPage = jsonData.data.user.edge_followed_by.page_info.has_next_page;
+        end_cursor = jsonData.data.user.edge_followed_by.page_info.end_cursor;
+
+        jsonData.data.user.edge_followed_by.edges.forEach(i => {
+            followers.push({'id': i.node.id, 'username': i.node.username});
+            if(!i.node.followed_by_viewer)
+                idontFollowBack.push({'id': i.node.id, 'username': i.node.username});
+            // console.log(i.node.username);
+        });
+
+        while(hasNextPage){
+            res = await this.getrequest('/graphql/query/?query_hash=' + encodeURIComponent('c76146de99bb02f6415203be841dd25a') + '&variables=' + encodeURIComponent('{"id":"' + id + '","include_reel":true,"fetch_mutual":true,"first":50,"after":"' + end_cursor + '"}'))
+                
             jsonData = JSON.parse(res['data']);
             hasNextPage = jsonData.data.user.edge_followed_by.page_info.has_next_page;
-            end_cursor = jsonData.data.user.edge_followed_by.page_info.end_cursor;
-
+            // console.log(hasNextPage);
             jsonData.data.user.edge_followed_by.edges.forEach(i => {
                 followers.push({'id': i.node.id, 'username': i.node.username});
                 if(!i.node.followed_by_viewer)
                     idontFollowBack.push({'id': i.node.id, 'username': i.node.username});
                 // console.log(i.node.username);
-            });
-            
-        })
-        
-        .catch(err => {
-            console.log(err)
-        })
-
-        while(hasNextPage){
-            await this.getrequest('/graphql/query/?query_hash=' + encodeURIComponent('c76146de99bb02f6415203be841dd25a') + '&variables=' + encodeURIComponent('{"id":"' + id + '","include_reel":true,"fetch_mutual":true,"first":50,"after":"' + end_cursor + '"}'))
-            .then(res => {
-                
-                jsonData = JSON.parse(res['data']);
-                hasNextPage = jsonData.data.user.edge_followed_by.page_info.has_next_page;
-                // console.log(hasNextPage);
-                jsonData.data.user.edge_followed_by.edges.forEach(i => {
-                    followers.push({'id': i.node.id, 'username': i.node.username});
-                    if(!i.node.followed_by_viewer)
-                        idontFollowBack.push({'id': i.node.id, 'username': i.node.username});
-                    // console.log(i.node.username);
-                })
-                if(hasNextPage)
-                    end_cursor = jsonData.data.user.edge_followed_by.page_info.end_cursor;
             })
-
-            .catch(err => {
-                console.log(err);
-            })
+            if(hasNextPage)
+                end_cursor = jsonData.data.user.edge_followed_by.page_info.end_cursor;
         }
 
 
@@ -259,39 +242,26 @@ module.exports = class Parser{
         let jsonData;
         let following = Array();
         let dontFollowMeBack = Array();
-        await this.getrequest('/graphql/query/?query_hash=' + encodeURIComponent('d04b0a864b4b54837c0d870b0e77e076') + '&variables=' + encodeURIComponent('{"id":"' + id + '","include_reel":true,"fetch_mutual":true,"first":50}'))
-        .then(res => {
+        let res = await this.getrequest('/graphql/query/?query_hash=' + encodeURIComponent('d04b0a864b4b54837c0d870b0e77e076') + '&variables=' + encodeURIComponent('{"id":"' + id + '","include_reel":true,"fetch_mutual":true,"first":50}'))
+        jsonData = JSON.parse(res['data']);
+        hasNextPage = jsonData.data.user.edge_follow.page_info.has_next_page;
+        end_cursor = jsonData.data.user.edge_follow.page_info.end_cursor;
+
+        jsonData.data.user.edge_follow.edges.forEach(i => {
+            // console.log(i.node.username);
+            following.push({'id': i.node.id, 'username': i.node.username});
+        });
+
+        while(hasNextPage){
+            res = await this.getrequest('/graphql/query/?query_hash=' + encodeURIComponent('d04b0a864b4b54837c0d870b0e77e076') + '&variables=' + encodeURIComponent('{"id":"' + id + '","include_reel":true,"fetch_mutual":true,"first":50,"after":"' + end_cursor + '"}'))
             jsonData = JSON.parse(res['data']);
             hasNextPage = jsonData.data.user.edge_follow.page_info.has_next_page;
-            end_cursor = jsonData.data.user.edge_follow.page_info.end_cursor;
-
             jsonData.data.user.edge_follow.edges.forEach(i => {
                 // console.log(i.node.username);
                 following.push({'id': i.node.id, 'username': i.node.username});
-            });
-            
-        })
-        
-        .catch(err => {
-            console.log(err)
-        })
-
-        while(hasNextPage){
-            await this.getrequest('/graphql/query/?query_hash=' + encodeURIComponent('d04b0a864b4b54837c0d870b0e77e076') + '&variables=' + encodeURIComponent('{"id":"' + id + '","include_reel":true,"fetch_mutual":true,"first":50,"after":"' + end_cursor + '"}'))
-            .then(res => {
-                jsonData = JSON.parse(res['data']);
-                hasNextPage = jsonData.data.user.edge_follow.page_info.has_next_page;
-                jsonData.data.user.edge_follow.edges.forEach(i => {
-                    // console.log(i.node.username);
-                    following.push({'id': i.node.id, 'username': i.node.username});
-                })
-                if(hasNextPage)
-                    end_cursor = jsonData.data.user.edge_follow.page_info.end_cursor;
             })
-
-            .catch(err => {
-                console.log(err);
-            })
+            if(hasNextPage)
+                end_cursor = jsonData.data.user.edge_follow.page_info.end_cursor;
         }
 
 
