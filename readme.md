@@ -25,7 +25,7 @@ cd insta-bot
 npm install
 mkdir cookie
 mkdir userdata
-echo "{users:[]}" > botUsers.json
+echo {"users":[]} > botUsers.json
 ```
 
 Add proxy and insert your bot token:
