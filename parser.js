@@ -72,7 +72,6 @@ module.exports = class Parser{
             postCurl.setOpt('SSL_VERIFYPEER', false);
             postCurl.setOpt('USERAGENT', `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36`);
             postCurl.setOpt('POST', true);
-            
             postCurl.setOpt('POSTFIELDS', postFields)
             postCurl.setOpt('HTTPHEADER', [
                 'Content-Type: application/x-www-form-urlencoded',
@@ -85,7 +84,7 @@ module.exports = class Parser{
 
 
             postCurl.on('end', function (statusCode, data, headers) {
-                console.log(data);
+                // console.log(data);
                 // console.info(statusCode);
                 // console.info('---');
                 // console.info(data.length);
@@ -285,5 +284,16 @@ module.exports = class Parser{
 
         return {'following': following, 'dontFollowMeBack': dontFollowMeBack}
     }
-}
 
+    async challenge(method, url, code = ''){
+        console.log(url);
+        if(method == 'getsms'){
+            let postFields = 'choice=0';
+            return await this.postRequest(url, this.token, postFields);
+        }
+        else if(method == 'postsms'){
+            let postFields = `security_code=${code}`
+            return await this.postRequest(url, this.token, postFields);
+        }
+    }
+}

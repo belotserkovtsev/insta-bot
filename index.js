@@ -9,9 +9,13 @@ const fs = require('fs');
 /* proxy is needed to work with bot from Russia
 free-socks: http://spys.one/en/socks-proxy-list/ */
 const socksAgent = new SocksAgent({
+    socksHost: "8.8.8.8",
+    socksPort: "888",
+    socksUsername: 'username', //on need
+    socksPassword: 'password' //on need
 });
 
-const bot = new Telegraf('', {
+const bot = new Telegraf('token', {
     telegram: { agent: socksAgent }
 });
 
@@ -24,6 +28,7 @@ const lk = new BaseScene('lk');
 const tfa = new BaseScene('tfa');
 const newAcc = new BaseScene('newAcc');
 const forgetMe = new BaseScene('forgetMe');
+const challenge = new BaseScene('challenge');
 
 tfa.enter(async (ctx) => {
     let keyboard = [['🔑Резервные коды']];
@@ -98,6 +103,32 @@ tfa.on('message', async(ctx)=> {
                     delete ctx.session.totp;
                     delete ctx.session.phone;
                     ctx.scene.enter('menuLoggedIn');
+                }
+            });
+        }
+
+        else if(res['message'] == 'checkpoint_required'){
+            delete ctx.session.userPassword;
+            let jsData = res;
+            let userData = {
+                igNickname : ctx.session.userAccount,
+                igId : jsData['checkpoint_url'].split('/')[2],
+                username : ctx.message.from.username,
+                rights: 0,
+                timeupdate: null,
+                loggedIn: false,
+                isFirstParse: true,
+                followers:[],
+                following: [],
+                idontFollowBack: [],
+                dontFollowMeBack: []
+            }
+            let data = JSON.stringify(userData, null, 2);
+            fs.writeFile('./userdata/' + ctx.message.from.username + '.json', data, err=>{
+                if(!err){
+                    ctx.session.isLoggedIn = true;
+                    ctx.session.url = jsData['checkpoint_url'];
+                    ctx.scene.enter('challenge');
                 }
             });
         }
@@ -193,6 +224,30 @@ password.on('message', async(ctx) => {
                 ctx.replyWithHTML('🔒<b>Пароль введен неверно</b>! Попробуй еще раз',
                 Telegraf.Markup.keyboard([['💔Отменить']]).oneTime().resize().extra());
                 delete ctx.session.userPassword;
+            }
+            else if(jsData['message'] == 'checkpoint_required'){
+                delete ctx.session.userPassword;
+                let userData = {
+                    igNickname : ctx.session.userAccount,
+                    igId : jsData['checkpoint_url'].split('/')[2],
+                    username : ctx.message.from.username,
+                    rights: 0,
+                    timeupdate: null,
+                    loggedIn: false,
+                    isFirstParse: true,
+                    followers:[],
+                    following: [],
+                    idontFollowBack: [],
+                    dontFollowMeBack: []
+                }
+                let data = JSON.stringify(userData, null, 2);
+                fs.writeFile('./userdata/' + ctx.message.from.username + '.json', data, err=>{
+                    if(!err){
+                        ctx.session.isLoggedIn = true;
+                        ctx.session.url = jsData['checkpoint_url'];
+                        ctx.scene.enter('challenge');
+                    }
+                });
             }
             else{
                 delete ctx.session.userPassword;
@@ -404,7 +459,7 @@ menuLoggedIn.hears('💣Сообщить о баге', async(ctx) => {
 });
 
 menuLoggedIn.hears('🧭О боте', async(ctx) => {
-    ctx.replyWithHTML(`🧭Бот анализирует твою страницу в Инстаграм и показывает статистическую сводку по следующим пунктам:
+    ctx.replyWithHTML(`🚀 Бот анализирует твою страницу в Инстаграм и показывает статистическую сводку по следующим пунктам: 🚀
 
 <b>Подписки,
 Подписчики,
@@ -596,6 +651,39 @@ forgetMe.hears('✅Да', async(ctx) => {
 
 forgetMe.hears('❎Нет',async(ctx) => {
     ctx.scene.enter('menuLoggedIn');
+});
+
+challenge.enter(async(ctx) => {
+    ctx.session.parser.challenge('getsms', ctx.session.url);
+    ctx.replyWithHTML(`🔐<b>Требуется подтвердить вход с незнакомого устройства.</b> На твой номер выслан код подтверждения. Введи его сюда`,
+    Telegraf.Markup.keyboard(['💔Отмена']).oneTime().resize().extra());
+});
+
+challenge.hears('💔Отмена', async(ctx) => {
+    delete ctx.session.parser;
+    delete ctx.session.url;
+    fs.unlink('./cookie/' + ctx.message.from.username, res => {});
+    delete ctx.session.userAccount;
+    ctx.scene.enter('menu');
+});
+
+challenge.on('message', async (ctx)=>{
+    try{
+        ctx.session.parser.challenge('postsms', ctx.session.url, ctx.message.text).then(async(res)=>{
+            let jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.message.from.username + '.json'));
+            jsonData.loggedIn = true;
+            fs.writeFile('./userdata/' + ctx.message.from.username + '.json', JSON.stringify(jsonData, null, 2), err => {
+                if(err)
+                    throw(err);
+            });
+            ctx.scene.enter('menuLoggedIn');
+        })
+        
+    }
+    catch{
+        ctx.replyWithHTML(`🔐<b>Ошибка. Попробуй снова</b>`);
+        ctx.scene.enter('menu');
+    }
 })
 
 /* Registering scenes */
@@ -608,6 +696,7 @@ stage.register(lk);
 stage.register(tfa);
 stage.register(newAcc);
 stage.register(forgetMe);
+stage.register(challenge);
 
 /* Making staging work, initializing session for personalized statistics */
 bot.use(session())
