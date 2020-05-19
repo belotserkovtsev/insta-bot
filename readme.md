@@ -18,11 +18,14 @@ Bot is able to track:
 ## 💻 Installation
 Download and install the latest version of [Node.js](https://nodejs.org/en/)
 
-Clone this repo and install dependencies:
+Clone this repo, install dependencies and create some files:
 ```bash
 git clone https://github.com/belotserkovtsev/insta-bot.git
 cd insta-bot
-npm i
+npm install
+mkdir cookie
+mkdir userdata
+echo "{users:[]}" > botUsers.json
 ```
 
 Add proxy and insert your bot token:
