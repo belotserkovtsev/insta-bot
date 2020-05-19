@@ -4,7 +4,7 @@
 
 Bot is able to track:
 
-- 👩🏻‍💻Followers
+- 👩🏻‍💻 Followers
 - 👨🏻‍💻 Following
 - 🙅🏻‍♂️ Not following back
 - 🤷🏻‍♀️ You're not following back
