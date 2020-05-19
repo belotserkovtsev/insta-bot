@@ -85,7 +85,7 @@ module.exports = class Parser{
 
 
             postCurl.on('end', function (statusCode, data, headers) {
-                // console.log(data);
+                console.log(data);
                 // console.info(statusCode);
                 // console.info('---');
                 // console.info(data.length);
@@ -118,9 +118,9 @@ module.exports = class Parser{
         pubKey = arr['headers'][1]['ig-set-password-encryption-web-pub-key'];
         pubKeyId = arr['headers'][1]['ig-set-password-encryption-web-key-id'];
         pubKeyV = arr['headers'][1]['ig-set-password-encryption-web-key-version'];
-        console.log(pubKey);
-        console.log(pubKeyId);
-        console.log(token);
+        // console.log(pubKey);
+        // console.log(pubKeyId);
+        // console.log(token);
         
         let encPassData = this.encrypt({password: pass, publicKey: pubKey, publicKeyId: pubKeyId});
         // console.log(encPassData);
