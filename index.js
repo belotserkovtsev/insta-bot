@@ -703,67 +703,82 @@ bot.use(stage.middleware())
 
 /* On /start event handler */
 bot.start(async (ctx) => {
-    let jsonData;
-    let existsFile = false;
-    jsonData = JSON.parse(fs.readFileSync('./botUsers.json'));
-    let userExists = false;
-    jsonData.users.forEach(i => {
-        if(i['userId'] == ctx.from.id){
-            userExists = true;
-            return;
+    try{
+        let jsonData;
+        let existsFile = false;
+        jsonData = JSON.parse(fs.readFileSync('./botUsers.json'));
+        let userExists = false;
+        jsonData.users.forEach(i => {
+            if(i['userId'] == ctx.from.id){
+                userExists = true;
+                return;
+            }
+        })
+        if(!userExists){
+            jsonData.users.push({'username': ctx.from.id, 'userId': ctx.from.id});
+            let data = JSON.stringify(jsonData, null, 2);
+            fs.writeFile('./botUsers.json', data, err => {
+                if(err)
+                    console.log(err);
+            });
         }
-    })
-    if(!userExists){
-        jsonData.users.push({'username': ctx.from.id, 'userId': ctx.from.id});
-        let data = JSON.stringify(jsonData, null, 2);
-        fs.writeFile('./botUsers.json', data, err => {
-            if(err)
-                console.log(err);
-        });
-    }
 
-    if(fs.existsSync('./userdata/' + ctx.from.id + '.json')){
-        jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.from.id + '.json'));
-        existsFile = true;
-    }
-    if(!ctx.session.isLoggedIn && existsFile && jsonData.loggedIn){
-        ctx.session.isLoggedIn = true;
-        ctx.session.userAccount = jsonData.igNickname;
-
-        if(!ctx.session.parser){
-            ctx.session.parser = new Parser(ctx.session.userAccount, ctx.from.id);
+        if(fs.existsSync('./userdata/' + ctx.from.id + '.json')){
+            jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.from.id + '.json'));
+            existsFile = true;
         }
+        if(!ctx.session.isLoggedIn && existsFile && jsonData.loggedIn){
+            ctx.session.isLoggedIn = true;
+            ctx.session.userAccount = jsonData.igNickname;
+
+            if(!ctx.session.parser){
+                ctx.session.parser = new Parser(ctx.session.userAccount, ctx.from.id);
+            }
+        }
+        await ctx.replyWithHTML('💻<b>Привет!</b>. Если будут предложения или баги - сразу пиши @belotserkovtsev')
+        .catch(err => {
+            console.log(`user: ${ctx.from.username}, id: ${ctx.from.id} error on start`);
+            throw err;
+        })
+        if(ctx.session.isLoggedIn)
+            ctx.scene.enter('menuLoggedIn');
+        else
+            ctx.scene.enter('menu');
     }
-    await ctx.replyWithHTML('💻<b>Привет!</b>. Если будут предложения или баги - сразу пиши @belotserkovtsev')
-    .catch(err => {
-        console.log(`user: ${ctx.from.username}, id: ${ctx.from.id} left bot`);
-    })
-    if(ctx.session.isLoggedIn)
-        ctx.scene.enter('menuLoggedIn');
-    else
-        ctx.scene.enter('menu');
+    catch{
+        ctx.session = null;
+    }
 });
 
 bot.on('message', async (ctx) => {
-    let jsonData;
-    let existsFile = false;
-    if(fs.existsSync('./userdata/' + ctx.from.id + '.json')){
-        jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.from.id + '.json'));
-        existsFile = true;
-    }
-    if(!ctx.session.isLoggedIn && existsFile && jsonData.loggedIn){
-        ctx.session.isLoggedIn = true;
-        ctx.session.userAccount = jsonData.igNickname;
-
-        if(!ctx.session.parser){
-            ctx.session.parser = new Parser(ctx.session.userAccount, ctx.from.id);
+    try{
+        let jsonData;
+        let existsFile = false;
+        if(fs.existsSync('./userdata/' + ctx.from.id + '.json')){
+            jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.from.id + '.json'));
+            existsFile = true;
         }
+        if(!ctx.session.isLoggedIn && existsFile && jsonData.loggedIn){
+            ctx.session.isLoggedIn = true;
+            ctx.session.userAccount = jsonData.igNickname;
+
+            if(!ctx.session.parser){
+                ctx.session.parser = new Parser(ctx.session.userAccount, ctx.from.id);
+            }
+        }
+        await ctx.replyWithHTML('💻<b>Бот был перезагружен для технического обслуживания</b>. Но теперь все в порядке. Твоя сессия восстановлена')
+        .catch(err => {
+            console.log(`user: ${ctx.from.username}, id: ${ctx.from.id} error on start`);
+            throw err;
+        })
+        if(ctx.session.isLoggedIn)
+            ctx.scene.enter('menuLoggedIn');
+        else
+            ctx.scene.enter('menu');
     }
-    await ctx.replyWithHTML('💻<b>Бот был перезагружен для технического обслуживания</b>. Но теперь все в порядке. Твоя сессия восстановлена');
-    if(ctx.session.isLoggedIn)
-        ctx.scene.enter('menuLoggedIn');
-    else
-        ctx.scene.enter('menu');
+    catch{
+        ctx.session = null;
+    }
 })
 
 
