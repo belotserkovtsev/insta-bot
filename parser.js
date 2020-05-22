@@ -5,9 +5,9 @@ const sealedbox = require('tweetnacl-sealedbox-js');
 
 module.exports = class Parser{
 
-    constructor(username, tgUsername){
+    constructor(username, tgId){
         this.username = username;
-        this.tgUsername = tgUsername;
+        this.tgId = tgId;
     }
 
     encrypt({password, publicKey, publicKeyId}){
@@ -40,8 +40,8 @@ module.exports = class Parser{
     
             getCurl.setOpt('URL', 'https://www.instagram.com' + url);
             getCurl.setOpt('FOLLOWLOCATION', true);
-            getCurl.setOpt('COOKIEFILE', './cookie/' + this.tgUsername);
-            getCurl.setOpt('COOKIEJAR', './cookie/' + this.tgUsername);
+            getCurl.setOpt('COOKIEFILE', './cookie/' + this.tgId);
+            getCurl.setOpt('COOKIEJAR', './cookie/' + this.tgId);
             getCurl.setOpt('SSL_VERIFYHOST', false);
             getCurl.setOpt('SSL_VERIFYPEER', false);
             //curl.setOpt('RETURNTRANSFER', true);
@@ -65,8 +65,8 @@ module.exports = class Parser{
     
             postCurl.setOpt('URL', 'https://www.instagram.com' + url);
             postCurl.setOpt('FOLLOWLOCATION', true);
-            postCurl.setOpt('COOKIEFILE', './cookie/' + this.tgUsername);
-            postCurl.setOpt('COOKIEJAR', './cookie/' + this.tgUsername);
+            postCurl.setOpt('COOKIEFILE', './cookie/' + this.tgId);
+            postCurl.setOpt('COOKIEJAR', './cookie/' + this.tgId);
             //curl.setOpt('HEADER', true);
             postCurl.setOpt('SSL_VERIFYHOST', false);
             postCurl.setOpt('SSL_VERIFYPEER', false);
@@ -195,7 +195,7 @@ module.exports = class Parser{
         }
 
 
-        let data = fs.readFileSync('./userdata/' + this.tgUsername + '.json');
+        let data = fs.readFileSync('./userdata/' + this.tgId + '.json');
         let newFollowers = new Array();
         let lostFollowers = new Array();
         data = JSON.parse(data);
@@ -229,7 +229,7 @@ module.exports = class Parser{
         data.newFollowers = newFollowers;
         data.lostFollowers = lostFollowers;
         data = JSON.stringify(data, null, 2);
-        fs.writeFileSync('./userdata/' + this.tgUsername + '.json', data);
+        fs.writeFileSync('./userdata/' + this.tgId + '.json', data);
 
         return {'followers': followers, 'idontFollowBack': idontFollowBack, 'newFollowers': newFollowers, 'lostFollowers': lostFollowers};
         
@@ -265,7 +265,7 @@ module.exports = class Parser{
 
 
         // let data = fs.readFileSync('./userdata/' + this.tgUsername + '.json');
-        jsonData = JSON.parse(fs.readFileSync('./userdata/' + this.tgUsername + '.json'));
+        jsonData = JSON.parse(fs.readFileSync('./userdata/' + this.tgId + '.json'));
         jsonData.following = following;
         following.forEach(i => {
             let followsBack = false;
@@ -280,13 +280,13 @@ module.exports = class Parser{
             }
         });
         jsonData.dontFollowMeBack = dontFollowMeBack;
-        fs.writeFileSync('./userdata/' + this.tgUsername + '.json', JSON.stringify(jsonData, null, 2));
+        fs.writeFileSync('./userdata/' + this.tgId + '.json', JSON.stringify(jsonData, null, 2));
 
         return {'following': following, 'dontFollowMeBack': dontFollowMeBack}
     }
 
     async challenge(method, url, code = ''){
-        console.log(url);
+        // console.log(url);
         if(method == 'getsms'){
             let postFields = 'choice=0';
             return await this.postRequest(url, this.token, postFields);

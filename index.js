@@ -9,10 +9,6 @@ const fs = require('fs');
 /* proxy is needed to work with bot from Russia
 free-socks: http://spys.one/en/socks-proxy-list/ */
 const socksAgent = new SocksAgent({
-    socksHost: "8.8.8.8",
-    socksPort: "888",
-    socksUsername: 'username', //on need
-    socksPassword: 'password' //on need
 });
 
 const bot = new Telegraf('token', {
@@ -74,7 +70,7 @@ tfa.hears('💔Отмена', async(ctx) => {
     delete ctx.session.userAccount;
     delete ctx.session.parser;
     delete ctx.session.phone;
-    fs.unlink('./cookie/' + ctx.message.from.username, res => {});
+    fs.unlink('./cookie/' + ctx.from.id, res => {});
 });
 
 tfa.on('message', async(ctx)=> {
@@ -84,7 +80,7 @@ tfa.on('message', async(ctx)=> {
             let userData = {
                 igNickname : ctx.session.userAccount,
                 igId : jsData['userId'],
-                username : ctx.message.from.username,
+                tgId : ctx.from.id,
                 rights: 0,
                 timeupdate: null,
                 loggedIn: true,
@@ -95,7 +91,7 @@ tfa.on('message', async(ctx)=> {
                 dontFollowMeBack: []
             }
             let data = JSON.stringify(userData, null, 2);
-            fs.writeFile('./userdata/' + ctx.message.from.username + '.json', data, err =>{
+            fs.writeFile('./userdata/' + ctx.from.id + '.json', data, err =>{
                 if(!err){
                     ctx.session.isLoggedIn = true;
                     delete ctx.session.identifier;
@@ -113,7 +109,7 @@ tfa.on('message', async(ctx)=> {
             let userData = {
                 igNickname : ctx.session.userAccount,
                 igId : jsData['checkpoint_url'].split('/')[2],
-                username : ctx.message.from.username,
+                tgId : ctx.from.id,
                 rights: 0,
                 timeupdate: null,
                 loggedIn: false,
@@ -124,7 +120,7 @@ tfa.on('message', async(ctx)=> {
                 dontFollowMeBack: []
             }
             let data = JSON.stringify(userData, null, 2);
-            fs.writeFile('./userdata/' + ctx.message.from.username + '.json', data, err=>{
+            fs.writeFile('./userdata/' + tgId + '.json', data, err=>{
                 if(!err){
                     ctx.session.isLoggedIn = true;
                     ctx.session.url = jsData['checkpoint_url'];
@@ -154,7 +150,7 @@ tfa.on('message', async(ctx)=> {
             delete ctx.session.userAccount;
             delete ctx.session.parser;
             delete ctx.session.phone;
-            fs.unlink('./cookie/' + ctx.message.from.username, res => {});
+            fs.unlink('./cookie/' + ctx.from.id, res => {});
         }
         
         
@@ -176,7 +172,7 @@ password.enter(async(ctx) => {
 
 password.hears('💔Отменить', async (ctx) => {
     delete ctx.session.parser;
-    fs.unlink('./cookie/' + ctx.message.from.username, res => {});
+    fs.unlink('./cookie/' + ctx.from.id, res => {});
     delete ctx.session.userAccount;
     ctx.scene.enter('menu');
 });
@@ -200,7 +196,7 @@ password.on('message', async(ctx) => {
                 let userData = {
                     igNickname : ctx.session.userAccount,
                     igId : jsData['userId'],
-                    username : ctx.message.from.username,
+                    tgId : ctx.from.id,
                     rights: 0,
                     timeupdate: null,
                     loggedIn: true,
@@ -211,7 +207,7 @@ password.on('message', async(ctx) => {
                     dontFollowMeBack: []
                 }
                 let data = JSON.stringify(userData, null, 2);
-                fs.writeFile('./userdata/' + ctx.message.from.username + '.json', data, err=>{
+                fs.writeFile('./userdata/' + ctx.from.id + '.json', data, err=>{
                     if(!err){
                         ctx.session.isLoggedIn = true;
                         delete ctx.session.userPassword;
@@ -230,7 +226,7 @@ password.on('message', async(ctx) => {
                 let userData = {
                     igNickname : ctx.session.userAccount,
                     igId : jsData['checkpoint_url'].split('/')[2],
-                    username : ctx.message.from.username,
+                    tgId : ctx.from.id,
                     rights: 0,
                     timeupdate: null,
                     loggedIn: false,
@@ -241,7 +237,7 @@ password.on('message', async(ctx) => {
                     dontFollowMeBack: []
                 }
                 let data = JSON.stringify(userData, null, 2);
-                fs.writeFile('./userdata/' + ctx.message.from.username + '.json', data, err=>{
+                fs.writeFile('./userdata/' + ctx.from.id + '.json', data, err=>{
                     if(!err){
                         ctx.session.isLoggedIn = true;
                         ctx.session.url = jsData['checkpoint_url'];
@@ -254,7 +250,7 @@ password.on('message', async(ctx) => {
                 delete ctx.session.parser;
                 ctx.replyWithHTML('❎<b>Бот не может войти в аккаунт. Введенного логина не существует или произошла внутрення ошибка</b>. Напиши @belotserkovtsev если считаешь что это баг');
                 // if(fs.existsSync('./cookie/' + ctx.message.from.username))
-                fs.unlink('./cookie/' + ctx.message.from.username, res => {});
+                fs.unlink('./cookie/' + ctx.from.id, res => {});
                 delete ctx.session.userAccount;
                 ctx.scene.enter('menu');
             }
@@ -292,7 +288,7 @@ nickname.on('sticker', (ctx) => ctx.reply('👍'));
 nickname.on('message', async(ctx) => {
     try{
         if(ctx.message.text == '✅Да'){
-            ctx.session.parser = new Parser(ctx.session.userAccount, ctx.message.from.username);
+            ctx.session.parser = new Parser(ctx.session.userAccount, ctx.from.id);
             ctx.scene.enter('password');
         }
         else if(ctx.message.text == '❎Нет'){
@@ -362,7 +358,7 @@ menuLoggedIn.hears('📟Личный кабинет', Stage.enter('lk'));
 
 menuLoggedIn.hears('🧬Анализировать', async (ctx) => {
     let jsonData;
-    jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.message.from.username + '.json'));
+    jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.from.id + '.json'));
     if(ctx.session.isLoggedIn && (jsonData.isFirstParse || jsonData.rights > 0 || (jsonData.rights == 0 && jsonData.timeupdate/1000 <= (Date.now()/1000)-86400))){
         await ctx.reply('🔮 Запускаю анализатор...');
 
@@ -410,7 +406,7 @@ menuLoggedIn.hears('🧬Анализировать', async (ctx) => {
                 
     
                 if(jsonData.isFirstParse){
-                    jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.message.from.username + '.json'));
+                    jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.from.id + '.json'));
                     jsonData.isFirstParse = false;
                     jsonData.timeupdate = Date.now();
                     jsonData.monthlyTimeupdate = Date.now();
@@ -418,20 +414,20 @@ menuLoggedIn.hears('🧬Анализировать', async (ctx) => {
                     jsonData.monthlyFollowers = jsonData.followers.length;
                     jsonData.monthlyFollowing = jsonData.following.length;
                     await ctx.replyWithHTML('🔮<b>Первый анализ успешно завершен</b>. Ниже представлена краткая статистическая сводка, показывающая базовые изменения статистики, но намного больше информации можно получить, если перейти \nв "📟Личный кабинет"');
-                    fs.writeFile('./userdata/' + ctx.message.from.username + '.json', JSON.stringify(jsonData, null, 2), err => {
+                    fs.writeFile('./userdata/' + ctx.from.id + '.json', JSON.stringify(jsonData, null, 2), err => {
                         if(err)
                             throw(err);
                     });
                 }
                 else{
-                    jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.message.from.username + '.json'));
+                    jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.from.id + '.json'));
                     if((jsonData.monthlyTimeupdate/1000) >= Date.now() - (86400*30)){
                         jsonData.monthlyTimeupdate = Date.now();
                         jsonData.monthlyFollowers = jsonData.followers.length;
                         jsonData.monthlyFollowing = jsonData.following.length;
                     }
                     jsonData.timeupdate = Date.now();
-                    fs.writeFile('./userdata/' + ctx.message.from.username + '.json', JSON.stringify(jsonData, null, 2), err => {
+                    fs.writeFile('./userdata/' + ctx.from.id + '.json', JSON.stringify(jsonData, null, 2), err => {
                         if(err)
                             throw(err);
                     });
@@ -499,12 +495,15 @@ menuLoggedIn.hears('📵Забыть меня', async(ctx) => {
 menuLoggedIn.on('message', async(ctx) => {
     try{
         if(ctx.message.text.indexOf('#?') == 0){
-            let jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.message.from.username + '.json'));
+            let jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.from.id + '.json'));
             if(jsonData.rights == 2){
                 jsonData = JSON.parse(fs.readFileSync('./botUsers.json'));
-                jsonData.users.forEach(i => {
-                    bot.telegram.sendMessage(i.userId, ctx.message.text.slice(2));
-                })
+                for(let i = 0; i < jsonData.users.length; ++i){
+                    bot.telegram.sendMessage(jsonData.users[i].userId, ctx.message.text.slice(2))
+                    .catch(err => {
+                        console.log(`user: ${jsonData.users[i].username}, id: ${jsonData.users[i].userId} left bot`);
+                    });
+                }
             }
             else{
                 ctx.reply('У тебя нет прав высылать сообщения пользовтелям бота');
@@ -521,7 +520,7 @@ menuLoggedIn.on('message', async(ctx) => {
 });
 
 lk.enter(async(ctx) => {
-    jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.message.from.username + '.json'));
+    jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.from.id + '.json'));
     if(jsonData.isFirstParse){
         ctx.replyWithHTML('📟<b>Личный кабинет станет доступен после первого анализа</b>. Здесь ты сможешь найти более подробную статистику, посмотреть подписчиков и многое другое. <b>Возвращаю тебя в главное меню</b>')
         .then(res => ctx.scene.enter('menuLoggedIn'));
@@ -546,7 +545,7 @@ lk.hears('📱Главное меню', async(ctx) => {
 lk.hears('🙅🏻На меня не подписаны в ответ', async(ctx) => {
     let keyboard = [['📲Назад']];
     let jsonData;
-    jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.message.from.username + '.json'));
+    jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.from.id + '.json'));
     for(let i = 0; i < jsonData.dontFollowMeBack.length - 1; i+=2){
         keyboard.push([ `@${jsonData.dontFollowMeBack[i]['username']}`, `@${jsonData.dontFollowMeBack[i+1]['username']}` ]);
     }
@@ -560,7 +559,7 @@ lk.hears('🙅🏻На меня не подписаны в ответ', async(ct
 lk.hears('👨🏻‍💻Я не подписан в ответ', async(ctx) => {
     let keyboard = [['📲Назад']];
     let jsonData;
-    jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.message.from.username + '.json'));
+    jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.from.id + '.json'));
     for(let i = 0; i < jsonData.idontFollowBack.length - 1; i+=2){
         keyboard.push([ `@${jsonData.idontFollowBack[i]['username']}`, `@${jsonData.idontFollowBack[i+1]['username']}` ]);
     }
@@ -574,7 +573,7 @@ lk.hears('👨🏻‍💻Я не подписан в ответ', async(ctx) => 
 lk.hears('👱🏻‍♀️Новые подписчики', async(ctx) => {
     let keyboard = [['📲Назад']];
     let jsonData;
-    jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.message.from.username + '.json'));
+    jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.from.id + '.json'));
     for(let i = 0; i < jsonData.newFollowers.length - 1; i+=2){
         keyboard.push([ `@${jsonData.newFollowers[i]['username']}`, `@${jsonData.newFollowers[i+1]['username']}` ]);
     }
@@ -588,7 +587,7 @@ lk.hears('👱🏻‍♀️Новые подписчики', async(ctx) => {
 lk.hears('🤦🏼‍♀️Потерянные подписчики', async(ctx) => {
     let keyboard = [['📲Назад']];
     let jsonData;
-    jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.message.from.username + '.json'));
+    jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.from.id + '.json'));
     for(let i = 0; i < jsonData.lostFollowers.length - 1; i+=2){
         keyboard.push([ `@${jsonData.lostFollowers[i]['username']}`, `@${jsonData.lostFollowers[i+1]['username']}` ]);
     }
@@ -626,8 +625,8 @@ lk.on('message', async(ctx) => {
 
 newAcc.hears('✅Да', async(ctx) => {
     delete ctx.session.isLoggedIn;
-    fs.unlink(`./userdata/${ctx.message.from.username}.json`, res => {});
-    fs.unlink(`./cookie/${ctx.message.from.username}`, res => {});
+    fs.unlink(`./userdata/${ctx.from.id}.json`, res => {});
+    fs.unlink(`./cookie/${ctx.from.id}`, res => {});
 
     delete ctx.session.parser;
     delete ctx.session.userAccount;
@@ -639,10 +638,10 @@ newAcc.hears('❎Нет', async(ctx) => {
 })
 
 forgetMe.hears('✅Да', async(ctx) => {
-    console.log('delete');
+    // console.log('delete');
     delete ctx.session.isLoggedIn;
-    fs.unlink(`./userdata/${ctx.message.from.username}.json`, res => {});
-    fs.unlink(`./cookie/${ctx.message.from.username}`, res => {});
+    fs.unlink(`./userdata/${ctx.from.id}.json`, res => {});
+    fs.unlink(`./cookie/${ctx.from.id}`, res => {});
 
     delete ctx.session.parser;
     delete ctx.session.userAccount;
@@ -662,7 +661,7 @@ challenge.enter(async(ctx) => {
 challenge.hears('💔Отмена', async(ctx) => {
     delete ctx.session.parser;
     delete ctx.session.url;
-    fs.unlink('./cookie/' + ctx.message.from.username, res => {});
+    fs.unlink('./cookie/' + ctx.from.id, res => {});
     delete ctx.session.userAccount;
     ctx.scene.enter('menu');
 });
@@ -670,9 +669,9 @@ challenge.hears('💔Отмена', async(ctx) => {
 challenge.on('message', async (ctx)=>{
     try{
         ctx.session.parser.challenge('postsms', ctx.session.url, ctx.message.text).then(async(res)=>{
-            let jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.message.from.username + '.json'));
+            let jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.from.id + '.json'));
             jsonData.loggedIn = true;
-            fs.writeFile('./userdata/' + ctx.message.from.username + '.json', JSON.stringify(jsonData, null, 2), err => {
+            fs.writeFile('./userdata/' + ctx.from.id + '.json', JSON.stringify(jsonData, null, 2), err => {
                 if(err)
                     throw(err);
             });
@@ -715,7 +714,7 @@ bot.start(async (ctx) => {
         }
     })
     if(!userExists){
-        jsonData.users.push({'username': ctx.message.from.username, 'userId': ctx.from.id});
+        jsonData.users.push({'username': ctx.from.id, 'userId': ctx.from.id});
         let data = JSON.stringify(jsonData, null, 2);
         fs.writeFile('./botUsers.json', data, err => {
             if(err)
@@ -723,8 +722,8 @@ bot.start(async (ctx) => {
         });
     }
 
-    if(fs.existsSync('./userdata/' + ctx.message.from.username + '.json')){
-        jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.message.from.username + '.json'));
+    if(fs.existsSync('./userdata/' + ctx.from.id + '.json')){
+        jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.from.id + '.json'));
         existsFile = true;
     }
     if(!ctx.session.isLoggedIn && existsFile && jsonData.loggedIn){
@@ -732,7 +731,7 @@ bot.start(async (ctx) => {
         ctx.session.userAccount = jsonData.igNickname;
 
         if(!ctx.session.parser){
-            ctx.session.parser = new Parser(ctx.session.userAccount, ctx.message.from.username);
+            ctx.session.parser = new Parser(ctx.session.userAccount, ctx.from.id);
         }
     }
     await ctx.replyWithHTML('💻<b>Привет!</b>. Если будут предложения или баги - сразу пиши @belotserkovtsev');
@@ -745,8 +744,8 @@ bot.start(async (ctx) => {
 bot.on('message', async (ctx) => {
     let jsonData;
     let existsFile = false;
-    if(fs.existsSync('./userdata/' + ctx.message.from.username + '.json')){
-        jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.message.from.username + '.json'));
+    if(fs.existsSync('./userdata/' + ctx.from.id + '.json')){
+        jsonData = JSON.parse(fs.readFileSync('./userdata/' + ctx.from.id + '.json'));
         existsFile = true;
     }
     if(!ctx.session.isLoggedIn && existsFile && jsonData.loggedIn){
@@ -754,7 +753,7 @@ bot.on('message', async (ctx) => {
         ctx.session.userAccount = jsonData.igNickname;
 
         if(!ctx.session.parser){
-            ctx.session.parser = new Parser(ctx.session.userAccount, ctx.message.from.username);
+            ctx.session.parser = new Parser(ctx.session.userAccount, ctx.from.id);
         }
     }
     await ctx.replyWithHTML('💻<b>Бот был перезагружен для технического обслуживания</b>. Но теперь все в порядке. Твоя сессия восстановлена');
