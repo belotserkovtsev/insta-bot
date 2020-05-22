@@ -715,7 +715,7 @@ bot.start(async (ctx) => {
             }
         })
         if(!userExists){
-            jsonData.users.push({'username': ctx.from.id, 'userId': ctx.from.id});
+            jsonData.users.push({'username': ctx.from.username, 'userId': ctx.from.id});
             let data = JSON.stringify(jsonData, null, 2);
             fs.writeFile('./botUsers.json', data, err => {
                 if(err)
