@@ -734,7 +734,10 @@ bot.start(async (ctx) => {
             ctx.session.parser = new Parser(ctx.session.userAccount, ctx.from.id);
         }
     }
-    await ctx.replyWithHTML('💻<b>Привет!</b>. Если будут предложения или баги - сразу пиши @belotserkovtsev');
+    await ctx.replyWithHTML('💻<b>Привет!</b>. Если будут предложения или баги - сразу пиши @belotserkovtsev')
+    .catch(err => {
+        console.log(`user: ${ctx.from.username}, id: ${ctx.from.id} left bot`);
+    })
     if(ctx.session.isLoggedIn)
         ctx.scene.enter('menuLoggedIn');
     else
