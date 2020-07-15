@@ -9,3 +9,4 @@ cookie
 *.vscode
 botUsers.json
 report.*
+.idea

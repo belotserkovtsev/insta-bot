@@ -1,3 +1,7 @@
+# ⛔️ WARNING!
+
+The bot is being refactored. v.1.0 was a complete mess, so i decided to come up with a better logic and pattern. v.2.0 is coming soon!
+
 # 🚀 Insta-bot
 
 <b>insta-bot is a Telegram bot which tracks instagram stats. It is fully written in Node.js and uses self-written Instagram API</b> 
