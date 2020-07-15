@@ -1,8 +1,8 @@
 {
-  "name": "ig",
+  "name": "insta-bot",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -17,7 +17,6 @@
   },
   "homepage": "https://github.com/belotserkovtsev/insta-bot#readme",
   "dependencies": {
-    "socks5-https-client": "^1.2.1",
     "telegraf": "^3.37.0"
   }
 }
